@@ -30,12 +30,17 @@
   },
   "assets": {
     "logo": "assets/logo.png",
-    "preview": "assets/logo.png",
-    "previewAlt": "EDC Book official logo"
+    "preview": "assets/preview.jpg",
+    "previewAlt": "EDC Book running on a physical reTerminal Sticky"
   },
   "tags": ["ereader", "partner", "offline", "epub", "chinese", "touch"],
   "flash": {
     "versions": [
+      {
+        "version": "3.1.1",
+        "channel": "stable",
+        "manifestPath": "firmware/3.1.1/manifest.json"
+      },
       {
         "version": "3.1.0",
         "channel": "stable",
