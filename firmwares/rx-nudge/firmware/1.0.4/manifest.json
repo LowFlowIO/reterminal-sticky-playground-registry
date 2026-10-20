@@ -1,0 +1,22 @@
+{
+  "name": "RxNudge",
+  "version": "1.0.4",
+  "flashSize": "16MB",
+  "flashMode": "dio",
+  "flashFreq": "40m",
+  "baudRate": 460800,
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "rxnudge-v1.0.4-flash-full.bin",
+          "offset": 0,
+          "size": 2235392,
+          "sha256": "4d45c141ad159385d09892f4ce66daa24e790a659c40eb3800d8b475cad6eaaf"
+        }
+      ]
+    }
+  ]
+}

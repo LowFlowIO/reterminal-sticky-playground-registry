@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "rx-nudge",
+  "name": "RxNudge",
+  "group": "community",
+  "catalogSection": "community",
+  "category": "productivity",
+  "mode": "flash",
+  "status": "experimental",
+  "summary": "Household medication reminder for reTerminal Sticky. Multi-person schedules, e-paper alarms, and offline-first.",
+  "description": "Turns reTerminal Sticky into a tabletop medication reminder for one or more people. Each person has their own medicines, schedules, PIN, and history. Alarms use the buzzer and e-paper screen; taken doses cannot be retaken. Works fully offline (radio off by default). Optional Wi-Fi adds NTP time sync, a LAN web portal, OTA updates, and ntfy/webhook missed-dose alerts. Not a medical device \u2014 only a reminder aid.",
+  "author": {
+    "name": "LowFlowIO",
+    "url": "https://github.com/LowFlowIO"
+  },
+  "origin": {
+    "name": "RxNudge",
+    "url": "https://github.com/LowFlowIO/RxNudge"
+  },
+  "source": {
+    "url": "https://github.com/LowFlowIO/RxNudge",
+    "license": "MIT"
+  },
+  "support": {
+    "url": "https://github.com/LowFlowIO/RxNudge/issues"
+  },
+  "documentationUrl": "https://github.com/LowFlowIO/RxNudge#readme",
+  "compatibility": {
+    "devices": [
+      "reterminal-sticky"
+    ],
+    "notes": "Tested on reTerminal Sticky production hardware. Flash image is 16 MB (DIO, 40 MHz)."
+  },
+  "assets": {
+    "preview": "assets/preview.jpg",
+    "previewAlt": "RxNudge sleep screen on reTerminal Sticky"
+  },
+  "tags": [
+    "medication",
+    "reminder",
+    "e-paper",
+    "offline",
+    "household"
+  ],
+  "flash": {
+    "versions": [
+      {
+        "version": "1.0.4",
+        "channel": "experimental",
+        "manifestPath": "firmware/1.0.4/manifest.json"
+      }
+    ],
+    "notes": [
+      {
+        "title": "Device connection",
+        "description": "Connect reTerminal Sticky with a USB data cable and use desktop Chrome or Edge."
+      },
+      {
+        "title": "Installation",
+        "description": "The package writes the complete RxNudge image from flash offset 0 (DIO, 40 MHz, 16 MB)."
+      },
+      {
+        "title": "First setup",
+        "description": "After flashing, follow the on-device setup wizard (language, time zone, optional Wi-Fi, first person, optional PIN). Reminders start once the clock is set."
+      },
+      {
+        "title": "Not a medical device",
+        "description": "RxNudge is a reminder aid only. Always follow your doctor's and pharmacist's instructions. Do not rely on it alone for critical medicines."
+      }
+    ]
+  }
+}
