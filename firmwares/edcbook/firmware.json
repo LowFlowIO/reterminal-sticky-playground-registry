@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "edcbook",
+  "name": "EDC Book",
+  "group": "partner",
+  "catalogSection": "platform",
+  "mode": "flash",
+  "status": "stable",
+  "summary": "An offline e-reader with flexible typography, Chinese vertical typesetting, and touch controls for reTerminal Sticky.",
+  "description": "Read DRM-free TXT, EPUB, MOBI, AZW3, and FB2 books from a microSD card. EDC Book offers configurable fonts and layout, Chinese vertical typesetting, bookmarks, and saved reading progress. Reading works offline; Wi-Fi provides optional file management and configuration. This is a closed-source firmware distributed publicly with permission to use and redistribute the binary freely.",
+  "author": {
+    "name": "mengxiyou",
+    "url": "https://github.com/mengxiyou"
+  },
+  "origin": {
+    "name": "EDC Book official project website",
+    "url": "https://edcbook.cn/"
+  },
+  "source": {
+    "url": "https://edcbook.cn/",
+    "license": "LicenseRef-EDCBook-Firmware"
+  },
+  "support": {
+    "url": "https://edcbook.cn/"
+  },
+  "documentationUrl": "https://edcbook.cn/#guide",
+  "compatibility": {
+    "devices": ["reterminal-sticky"],
+    "notes": "Tested on a physical reTerminal Sticky (ESP32-S3); hardware revision was not reported. This package uses a 16 MiB flash layout. A microSD card is used for books. USB supports firmware installation, not USB mass-storage file transfer."
+  },
+  "assets": {
+    "logo": "assets/logo.png",
+    "preview": "assets/preview.jpg",
+    "previewAlt": "EDC Book running on a physical reTerminal Sticky"
+  },
+  "tags": ["ereader", "partner", "offline", "epub", "chinese", "touch"],
+  "flash": {
+    "versions": [
+      {
+        "version": "3.1.1",
+        "channel": "stable",
+        "manifestPath": "firmware/3.1.1/manifest.json"
+      },
+      {
+        "version": "3.1.0",
+        "channel": "stable",
+        "manifestPath": "firmware/3.1.0/manifest.json"
+      }
+    ],
+    "notes": [
+      {
+        "title": "Connect and install",
+        "description": "Connect reTerminal Sticky with a USB data cable and use desktop Chrome or Edge. Install the complete image at offset 0x0. Back up settings before installation: this full image replaces the internal firmware, fonts, and filesystem."
+      },
+      {
+        "title": "Prepare your books",
+        "description": "Copy DRM-free books to a microSD card using a card reader, insert it into Sticky, and open a book from the file browser. Wi-Fi file management is also available. Sticky does not expose a USB mass-storage drive."
+      },
+      {
+        "title": "Firmware license",
+        "description": "The firmware binary is public and may be used and redistributed freely. Source code is not provided. Third-party components remain covered by their respective licenses. See LICENSE.txt in the Registry entry."
+      }
+    ]
+  }
+}

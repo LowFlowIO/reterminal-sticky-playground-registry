@@ -1,0 +1,21 @@
+{
+  "name": "CrossLink Pixel",
+  "version": "4.2.1",
+  "flashSize": "32MB",
+  "flashMode": "dio",
+  "flashFreq": "80m",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "pixel-sticky-4.2.1.bin",
+          "offset": 0,
+          "size": 16777216,
+          "sha256": "5481a2c17a7900ab2e8deb38316fa3ac349bbf7dfc2f6ee3b9672d0677ae2713"
+        }
+      ]
+    }
+  ]
+}

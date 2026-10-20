@@ -33,13 +33,27 @@ file, template, and detailed guide.
 | Firmware that users flash from the Sticky website | `firmwares/<firmware-id>/` | `firmware.json` | `firmwares/_template/` | [Contributing firmware](docs/contributing-firmware.md) |
 | A 3D printable case, stand, mount, or accessory | `printables/<design-id>/` | `printable.json` | `printables/_template/` | [Contributing a 3D printable design](docs/contributing-printables.md) |
 
-- A **firmware** contribution ships either buildable ESP-IDF source that GitHub
-  Actions compiles, or a verified `.bin` package with a manifest. It needs a
-  physical-device test before review. Expect to spend an hour or two on the
-  first submission.
+- A **firmware** contribution ships either buildable ESP-IDF, PlatformIO, or
+  Arduino source that GitHub Actions compiles, or a verified `.bin` package with
+  a manifest. It needs a physical-device test before review. Expect to spend an
+  hour or two on the first submission.
 - A **printable** contribution is a card: one JSON file, one photo, one short
   README. The model files stay on your Printables / MakerWorld / Thingiverse /
   GrabCAD / GitHub page. Expect 15–30 minutes.
+
+**Printables have a shortcut.** The **Submit with the form** button on the
+[3D Printables page](https://www.seeedstudio.com/sticky/playground/3d-printables/)
+asks for a short version of the same information, takes your photo as an upload, and
+opens the pull request here on your behalf. It needs no GitHub account, no git,
+and no JSON, and it takes about five minutes. The form links you to the pull
+request it created so you can follow the review. Use the manual route below when
+you prefer working in git, or when you update a design that is already listed.
+
+**Firmware-only packages have the same shortcut.** The **Submit with the form**
+button on the [Firmware page](https://www.seeedstudio.com/sticky/playground/firmware/)
+accepts a compiled `.bin` (one merged image, or separate files with offsets)
+plus the card details. Source contributions that GitHub Actions compiles still
+use the manual route in [contributing-firmware.md](docs/contributing-firmware.md).
 
 This page covers everything the two kinds have in common. Read it once, then
 follow the detailed guide for your content type.
@@ -48,11 +62,11 @@ follow the detailed guide for your content type.
 
 | Requirement | Firmware | Printable | Notes |
 |---|---|---|---|
-| A GitHub account | Yes | Yes | Free account is enough |
+| A GitHub account | Only for the manual route | Only for the manual route | Free account is enough; the website form needs none |
 | Git on your computer | Recommended | Optional | Printables can be submitted entirely in the GitHub web interface (see [Method B](#method-b-github-web-interface-no-git)) |
 | Node.js 20 or newer | Recommended | Optional | Runs the same checks locally that GitHub Actions runs on your PR |
 | A reTerminal Sticky | Yes | Yes | Firmware must be flashed and tested on a real device; printables need a photo of the print on a real device |
-| ESP-IDF | Optional | No | Only if you want to build firmware locally before submitting |
+| ESP-IDF, PlatformIO, or Arduino CLI | Optional | No | Only if you want to build firmware locally before submitting |
 
 ## 3. Repository layout
 
@@ -65,7 +79,7 @@ firmwares/                     one directory per firmware
     assets/
       preview.jpg              real Sticky screenshot or photo
       logo.svg                 optional identity image
-    source/                    source contributions: the ESP-IDF project
+    source/                    source contributions: the buildable project
     firmware/<version>/        firmware-only contributions: manifest.json + *.bin
 
 printables/                    one directory per printable design
@@ -82,8 +96,11 @@ schemas/
 
 scripts/
   validate-registry.mjs        checks every directory; run with npm run validate
+  create-flash-manifest.mjs    writes a firmware manifest; run with npm run create:manifest
   list-build-targets.mjs       finds source-built firmware for GitHub Actions
   package-esp-idf.mjs          turns an ESP-IDF build into manifest.json + .bin
+  package-platformio.mjs       same, for a PlatformIO build
+  package-arduino.mjs          same, for an Arduino build
 
 docs/
   contributing-firmware.md     detailed firmware guide (+ .zh-CN.md)
@@ -261,10 +278,15 @@ SHA-256 values, and flash offsets; see the firmware guide.
    firmware it also compiles the project and attaches the firmware as a PR
    artifact. A red cross means something failed; open **Details** to read the
    log.
-3. A maintainer reviews metadata, images, links, license, and (for firmware)
+3. A **review card** comment appears on the pull request within a minute or two.
+   It shows the card as reviewers see it, the preview photo, whether the links
+   answer, and anything that needs attention such as a missing licence or a
+   credential left in the diff. The comment is rewritten on every push, so it
+   always describes the current state of your branch.
+4. A maintainer reviews metadata, images, links, license, and (for firmware)
    the physical-device test record. Review comments appear on the PR; reply or
    push fixes to the same branch.
-4. When the checks are green and the review is complete, the maintainer merges.
+5. When the checks are green and the review is complete, the maintainer merges.
 
 Typical turnaround is a few working days. If a PR has been quiet for more than
 two weeks, leave a comment on it.
@@ -325,9 +347,9 @@ The metadata files only accept the fields listed in their guide. Remove the
 extra key, or check for a typo in a valid key.
 
 **How do I test firmware on my device before submitting?**
-Build locally with ESP-IDF and flash with `idf.py flash`, or use the PR
-artifact that GitHub Actions produces after you open the PR. The firmware guide
-describes both.
+Build locally with your project's toolchain and flash it from there, or use the
+PR artifact that GitHub Actions produces after you open the PR. The firmware
+guide describes both.
 
 **Who do I ask if something is unclear?**
 Open an issue in this repository, or ask in the pull request itself.

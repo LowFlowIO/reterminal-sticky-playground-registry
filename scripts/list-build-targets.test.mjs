@@ -23,6 +23,36 @@ function writeIntegration(root, integration) {
   );
 }
 
+function writeSourceIntegration(root, id, name) {
+  writeIntegration(root, {
+    id,
+    name,
+    catalogSection: 'community',
+    build: {
+      system: 'esp-idf',
+      version: 'v5.3.2',
+      target: 'esp32s3',
+      projectPath: 'source',
+    },
+    flash: {
+      versions: [{ version: '1.0.0', sourceBuild: true }],
+    },
+  });
+}
+
+function runList(root, changedFiles) {
+  const result = spawnSync(process.execPath, [LIST_SCRIPT], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      REGISTRY_ROOT: root,
+      ...(changedFiles === undefined ? {} : { CHANGED_FILES: changedFiles }),
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout).include.map((target) => target.id);
+}
+
 test('lists only publishable source-built integrations', () => {
   const root = mkdtempSync(join(tmpdir(), 'sticky-target-list-test-'));
   try {
@@ -75,6 +105,7 @@ test('lists only publishable source-built integrations', () => {
       include: [{
         id: 'source-project',
         name: 'Source Project',
+        system: 'esp-idf',
         path: 'firmwares/source-project/source',
         idfVersion: 'v5.3.2',
         target: 'esp32s3',
@@ -82,6 +113,88 @@ test('lists only publishable source-built integrations', () => {
         versionSlug: '2.0.0-rc1',
       }],
     });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('passes the toolchain arguments each build system needs', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sticky-target-list-test-'));
+  try {
+    writeIntegration(root, {
+      id: 'pio-project',
+      name: 'PlatformIO Project',
+      catalogSection: 'community',
+      build: {
+        system: 'platformio',
+        environment: 'sticky',
+        projectPath: 'source',
+      },
+      flash: {
+        versions: [{ version: '1.0.0', sourceBuild: true }],
+      },
+    });
+    writeIntegration(root, {
+      id: 'arduino-project',
+      name: 'Arduino Project',
+      catalogSection: 'community',
+      build: {
+        system: 'arduino',
+        profile: 'sticky',
+        projectPath: 'source',
+      },
+      flash: {
+        versions: [{ version: '1.0.0', sourceBuild: true }],
+      },
+    });
+
+    const result = spawnSync(process.execPath, [LIST_SCRIPT], {
+      encoding: 'utf8',
+      env: { ...process.env, REGISTRY_ROOT: root },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      include: [
+        {
+          id: 'arduino-project',
+          name: 'Arduino Project',
+          system: 'arduino',
+          path: 'firmwares/arduino-project/source',
+          profile: 'sticky',
+          version: '1.0.0',
+          versionSlug: '1.0.0',
+        },
+        {
+          id: 'pio-project',
+          name: 'PlatformIO Project',
+          system: 'platformio',
+          path: 'firmwares/pio-project/source',
+          environment: 'sticky',
+          version: '1.0.0',
+          versionSlug: '1.0.0',
+        },
+      ],
+    });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('narrows the target list to the firmwares a change touches', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sticky-target-list-test-'));
+  try {
+    writeSourceIntegration(root, 'alpha', 'Alpha');
+    writeSourceIntegration(root, 'beta', 'Beta');
+
+    assert.deepEqual(runList(root, undefined), ['alpha', 'beta']);
+    assert.deepEqual(runList(root, ''), ['alpha', 'beta']);
+    assert.deepEqual(
+      runList(root, 'printables/sticky-case/printable.json\nprintables/sticky-case/README.md'),
+      [],
+    );
+    assert.deepEqual(runList(root, 'firmwares/beta/source/main/main.c'), ['beta']);
+    assert.deepEqual(runList(root, 'scripts/package-esp-idf.mjs'), ['alpha', 'beta']);
+    assert.deepEqual(runList(root, '.github/workflows/validate-registry.yml'), ['alpha', 'beta']);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

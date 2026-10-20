@@ -9,11 +9,25 @@
 图片和实机测试记录。Sticky 私有网站只读取经过审核并锁定版本的公开仓库内容，再生成
 卡片和烧录页。
 
+## 五分钟通道：官网表单
+
+已经有编译好的 `.bin` 时，[Firmware 页面](https://www.seeedstudio.com/sticky/playground/firmware/)
+上的 **用表单提交** 会打开一个短表单：固件名称、分类、简介、版本、许可证、
+项目主页、一张照片，以及固件文件。可以交一份从 `0x0` 写入的合并镜像，也可以按
+Playground 上已有固件包最常见的偏移（`0x0`、`0x8000`、`0xE000`、`0x10000`）上传分开的文件。
+提交服务会写好 `firmware.json`、`README.md`、`assets/preview.<ext>` 和
+`firmware/<version>/`，并打开 pull request。页面随后给出 PR 链接。不需要 GitHub
+账号，不需要 git，也不需要写 JSON。
+
+需要 GitHub Actions 编译的源码贡献，仍走下面的手动流程。如果你更习惯自己准备文件、
+要更新已经上线的固件，或想看清表单最终写出哪些文件，请继续往下读。
+
 英文指南请查看 [contributing-firmware.md](contributing-firmware.md)。
 两类贡献共用的审核与发布流程见 [CONTRIBUTING.zh-CN.md](../CONTRIBUTING.zh-CN.md)。
 
 ## 目录
 
+- [五分钟通道：官网表单](#五分钟通道官网表单)
 - [贡献完成后，用户会得到什么](#贡献完成后用户会得到什么)
 - [PR 必须提供的文件](#pr-必须提供的文件)
 - [创建一份贡献](#创建一份贡献)
@@ -21,7 +35,7 @@
 - [两种贡献方式](#两种贡献方式)：[源码模式](#源码模式) 或 [仅固件包](#仅固件包)（含 [manifest.json 说明](#仅固件包的-manifestjson)）
 - [Sticky 官方固件更新](#sticky-官方固件更新)
 - [源码模式要求](#源码模式要求)
-- [可选的本地 ESP-IDF 编译](#可选的本地-esp-idf-编译)
+- [可选的本地编译](#可选的本地编译)
 - [本地自动检查](#本地自动检查) 及[常见校验报错](#常见校验报错)
 - [提交 pull request](#提交-pull-request)
 - [真实设备测试](#真实设备测试)
@@ -107,6 +121,14 @@ firmwares/
 一句话总结：源码模式交源码给 Action 生成固件；仅固件模式直接提交可烧录文件。
 
 ## 创建一份贡献
+
+先把本地 `main` 同步到上游最新，这样贡献使用的目录结构与 Registry 当前读取的一致：
+
+```bash
+# 每个克隆只需执行一次
+git remote add upstream https://github.com/Seeed-Projects/reterminal-sticky-playground-registry.git
+git pull --no-ff upstream main
+```
 
 在仓库根目录执行：
 
@@ -211,7 +233,7 @@ cp -R firmwares/_template firmwares/my-firmware
 | `name` | 字符串 | 是 | 1–80 字符 | 网站上的卡片标题 |
 | `group` | 字符串 | 是 | `official`、`partner`、`community` | `community` |
 | `catalogSection` | 字符串 | 是 | `official`、`platform`、`community`、`draft` | `community`。`draft` 的卡片不会发布 |
-| `category` | 字符串 | `community` 必填 | `ereader`、`productivity`、`personal`、`weather`、`finance`、`tools`、`fun`、`smart-home` | 决定卡片出现在哪个筛选项下，见下表 |
+| `category` | 字符串 | `community` 必填 | `ereader`、`productivity`、`writing`、`personal`、`weather`、`finance`、`tools`、`fun`、`smart-home`、`other` | 决定卡片出现在哪个筛选项下，见下表 |
 | `mode` | 字符串 | 是 | `flash`、`external`、`template`、`download` | `flash`（浏览器烧录）。其余模式保留给协调维护的条目 |
 | `status` | 字符串 | 是 | `experimental`、`beta`、`stable` | 项目成熟度，显示为徽标 |
 | `summary` | 字符串 | 是 | 1–140 字符 | 标题下方的一句话 |
@@ -224,12 +246,14 @@ cp -R firmwares/_template firmwares/my-firmware
 |---|---|---|
 | `ereader` | eReader | 图书、文章、文档阅读器 |
 | `productivity` | Productivity | 待办、日历、笔记、计时器、工作看板 |
+| `writing` | Writing | 手写或键入笔记、日记与写作工具 |
 | `personal` | Personal | 习惯打卡、礼拜时间、日记、个人提醒 |
 | `weather` | Weather | 天气、空气质量、潮汐、预报 |
 | `finance` | Finance | 行情、持仓、预算 |
 | `tools` | Tools | 实用工具、计算器、换算、设备诊断 |
 | `fun` | Fun | 游戏、艺术、玩具、趣味显示 |
 | `smart-home` | Smart Home | Home Assistant、传感器、控制、在家检测 |
+| `other` | Others | 以上分类都不适用的固件 |
 
 #### 署名与链接
 
@@ -241,7 +265,7 @@ cp -R firmwares/_template firmwares/my-firmware
 | `origin.url` | 字符串 | 否 | HTTPS 网址 | `origin.name` 的链接 |
 | `source.url` | 字符串 | 是 | HTTPS 网址 | 上游源码仓库，两种贡献方式都要填 |
 | `source.license` | 字符串 | 仅固件包必填 | 1–80 字符 | SPDX 风格的许可证标识，如 `MIT`、`GPL-3.0`、`Apache-2.0` |
-| `source.path` | 字符串 | 源码模式必填 | 目录内的相对路径，通常是 `source` | 存放 ESP-IDF 工程的目录 |
+| `source.path` | 字符串 | 源码模式必填 | 目录内的相对路径，通常是 `source` | 存放工程的目录；Arduino 用 sketch 的名字 |
 | `support.url` | 字符串 | 是 | HTTPS 网址 | 用户反馈问题的地方，通常是 issue 页面 |
 | `documentationUrl` | 字符串 | 否 | HTTPS 网址 | 用户文档，通常是上游 README |
 
@@ -259,10 +283,15 @@ cp -R firmwares/_template firmwares/my-firmware
 
 | 字段 | 类型 | 必填 | 限制 | 填什么 |
 |---|---|---|---|---|
-| `build.system` | 字符串 | 是 | 必须是 `esp-idf` | `esp-idf` |
-| `build.version` | 字符串 | 是 | 最长 64 字符，`^[A-Za-z0-9][A-Za-z0-9._-]*$` | 项目使用的 ESP-IDF 版本：`v5.4`、`v5.3.2`、`latest` |
-| `build.target` | 字符串 | 是 | 最长 40 字符 | `esp32s3`（reTerminal Sticky 使用 ESP32-S3） |
+| `build.system` | 字符串 | 是 | `esp-idf`、`platformio` 或 `arduino` | 项目本来在用的编译系统 |
+| `build.version` | 字符串 | 仅 ESP-IDF | 最长 64 字符，`^[A-Za-z0-9][A-Za-z0-9._-]*$` | 项目使用的 ESP-IDF 版本：`v5.4`、`v5.3.2`、`latest` |
+| `build.target` | 字符串 | 仅 ESP-IDF | 最长 40 字符 | `esp32s3`（reTerminal Sticky 使用 ESP32-S3） |
+| `build.environment` | 字符串 | 仅 PlatformIO | 最长 64 字符，`^[A-Za-z0-9][A-Za-z0-9._-]*$` | `platformio.ini` 里的环境名，不带 `env:` 前缀 |
+| `build.profile` | 字符串 | 仅 Arduino | 最长 64 字符，`^[A-Za-z0-9][A-Za-z0-9._-]*$` | `sketch.yaml` 里的配置档名称 |
 | `build.projectPath` | 字符串 | 是 | 相对路径 | 与 `source.path` 相同 |
+
+每种编译系统只接受属于自己的字段：ESP-IDF 写 `version` 和 `target`，PlatformIO 写
+`environment`，Arduino 写 `profile`。
 
 仅固件包模式请整个省略 `build` 对象。
 
@@ -354,16 +383,38 @@ Release，供 Sticky 测试分支读取。
 | `builds[].parts[].size` | 是 | 文件的精确字节数 |
 | `builds[].parts[].sha256` | 是 | 文件的小写 SHA-256 |
 
-各分区不能重叠，单个 `.bin` 不超过 32 MB。数值可以这样获取：
+各分区不能重叠，单个 `.bin` 不超过 32 MB。
+
+**manifest 交给仓库自动生成。** 把 `.bin` 文件放进
+`firmwares/my-firmware/firmware/1.0.0/`，在仓库根目录跑一条命令，它会自动算好每个文件的
+大小和 SHA-256，并打印出可以直接粘进 `firmware.json` 的 `flash.versions` 条目：
+
+```bash
+npm run create:manifest -- my-firmware 1.0.0 --part bootloader.bin@0x0 --part partitions.bin@0x8000 --part firmware.bin@0x10000
+```
+
+如果是用 ESP-IDF 编译的，直接把命令指向编译产物，连地址都不用填：
+
+```bash
+npm run create:manifest -- my-firmware 1.0.0 --flasher-args source/build/flasher_args.json
+```
+
+只有一个合并镜像时，什么参数都不用加：
+
+```bash
+npm run create:manifest -- my-firmware 1.0.0
+```
+
+换了 `.bin` 之后再跑一次，大小和哈希会刷新，manifest 里原有的烧录参数会保留。
+
+烧录地址来自 ESP-IDF 的 `build/flasher_args.json`（`flash_files`）或上游项目的发布说明。
+单个合并镜像从地址 `0` 开始。想手动读这些数值可以用：
 
 ```bash
 cd firmwares/my-firmware/firmware/1.0.0
 wc -c *.bin                 # 大小
 shasum -a 256 *.bin         # sha256（macOS/Linux）；Windows 用 certutil -hashfile 文件名 SHA256
 ```
-
-烧录地址来自 ESP-IDF 的 `build/flasher_args.json`（`flash_files`）或上游项目的发布说明。
-单个合并镜像从地址 `0` 开始。
 
 一句话总结：提交源码时由 Action 产出固件；直接提交固件时由作者提供完整烧录包。
 
@@ -396,7 +447,11 @@ shasum -a 256 *.bin         # sha256（macOS/Linux）；Windows 用 certutil -ha
 
 Wi-Fi 密码、API Key、Token 和密码等用户私密信息使用占位符或首次运行配置方式。
 
-第一阶段的自动编译流程支持 ESP-IDF，常见目录如下：
+自动编译流程支持 ESP-IDF、PlatformIO 和 Arduino 三种编译系统。选择项目本来就在用
+的那一种，写进 `build.system`。PlatformIO 和 Arduino 的起步工程放在
+[examples/](../examples/README.md)。
+
+### ESP-IDF
 
 ```text
 source/
@@ -409,26 +464,105 @@ source/
   LICENSE
 ```
 
-需要其他编译系统的项目，先提交 Issue，让维护者先为该编译系统加入可重复执行的 CI
-构建适配，再提交正式固件 PR。
+```json
+"build": {
+  "system": "esp-idf",
+  "version": "v5.4",
+  "target": "esp32s3",
+  "projectPath": "source"
+}
+```
 
-`build.version` 决定 GitHub Actions 使用哪个 ESP-IDF 版本。贡献者填写项目实际使用
-的版本，例如 `v5.0.5`、`v5.3.2` 或 `latest`，流程不会统一锁定到某个固定版本。
+`build.version` 决定 GitHub Actions 使用哪个 ESP-IDF 镜像版本，例如 `v5.0.5`、
+`v5.3.2` 或 `latest`，流程不会统一锁定到某个固定版本。
+
+### PlatformIO
+
+```text
+source/
+  platformio.ini
+  src/
+    main.cpp
+  LICENSE
+```
+
+```json
+"build": {
+  "system": "platformio",
+  "environment": "sticky",
+  "projectPath": "source"
+}
+```
+
+`build.environment` 指定要编译哪个 `[env:...]` 段落，不带 `env:` 前缀。在
+`platformio.ini` 里锁定平台版本，重新编译才能得到相同的二进制：
+
+```ini
+[env:sticky]
+platform = espressif32@6.13.0
+board = esp32-s3-devkitc-1
+framework = arduino
+```
+
+### Arduino
+
+Arduino CLI 要求 sketch 目录名与 `.ino` 文件名相同，因此工程目录用 sketch 的名字，
+不要叫 `source`：
+
+```text
+my-sketch/
+  my-sketch.ino
+  sketch.yaml
+  LICENSE
+```
+
+```json
+"build": {
+  "system": "arduino",
+  "profile": "sticky",
+  "projectPath": "my-sketch"
+}
+```
+
+`build.profile` 指定 `sketch.yaml` 里的一个配置档。配置档会锁定开发板内核和每一个
+库的版本，这是编译结果可复现的关键：
+
+```yaml
+profiles:
+  sticky:
+    fqbn: esp32:esp32:esp32s3
+    platforms:
+      - platform: esp32:esp32 (3.3.11)
+        platform_index_url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+default_profile: sticky
+```
+
+固件需要的开发板选项写进 `fqbn`，例如 reTerminal Sticky 的 32 MB Flash 与八线
+PSRAM 对应 `esp32:esp32:esp32s3:PSRAM=opi,FlashSize=32M`。
+
+使用其他编译系统的项目，先提交 Issue，让维护者先为该编译系统加入可重复执行的 CI
+构建适配，再提交正式固件 PR。
 
 一句话总结：源码必须让审核机器能够从零重新编译，而不是只留一个外部链接。
 
-## 可选的本地 ESP-IDF 编译
+## 可选的本地编译
 
-作者可以在提交 PR 前先做一次本地编译。安装 `firmware.json` 中声明的 ESP-IDF
-版本，然后进入项目的 `source/` 目录执行：
+作者可以在提交 PR 前先做一次本地编译。按声明的编译系统，在工程目录里执行对应命令：
 
 ```bash
+# ESP-IDF
 idf.py set-target esp32s3
 idf.py -D PROJECT_VER=1.0.0 build
+
+# PlatformIO
+pio run -e sticky
+
+# Arduino
+arduino-cli compile --profile sticky
 ```
 
-这一步用于作者在提交前确认工程能正常编译。Registry 会忽略本地生成的 `build/`、
-`sdkconfig`、依赖缓存和编辑器配置。PR 提交后，正式固件由 GitHub Actions 重新编译
+这一步用于作者在提交前确认工程能正常编译。Registry 会忽略本地生成的编译产物、
+配置文件、依赖缓存和编辑器配置。PR 提交后，正式固件由 GitHub Actions 重新编译
 并整理，无需把本机生成的文件放进 PR。
 
 一句话总结：本地编译是可选自测，正式固件统一由 Action 生成。
@@ -447,7 +581,7 @@ npm run validate
 - 目录名与项目 ID 一致；
 - 必填资料和 HTTPS 链接完整；
 - 项目 README 和声明的源码许可证存在；
-- 设置 `source.path` 时，本地源码目录和 ESP-IDF 工程文件存在；
+- 设置 `source.path` 时，本地源码目录和该编译系统的工程文件存在；
 - 图片格式正确，SVG 只包含静态内容；
 - manifest 结构正确；
 - 每个已提交固件文件存在，大小和 SHA-256 一致；
@@ -464,14 +598,16 @@ PR 中提交的文件。
 
 | 报错文字 | 原因 | 修法 |
 |---|---|---|
+| `integrations: entries belong in firmwares/ with their metadata in firmware.json` | 分支基于早前的目录结构 | 先与上游 `main` 同步，再把条目移到 `firmwares/<id>/`，并把元数据文件改名为 `firmware.json` |
 | `firmwares/my-firmware: is missing firmware.json` | 文件没创建或名字不对 | 创建 `firmwares/my-firmware/firmware.json` |
 | `...firmware.json: contains unsupported field "..."` | 出现了字段说明里没有的键 | 删掉或修正拼写 |
 | `...firmware.json.id: must match the directory name "..."` | `id` 与目录名不一致 | 改成一样 |
-| `...firmware.json.category: is required for community firmware entries` | 缺 `category` | 从八个值里选一个 |
+| `...firmware.json.category: is required for community firmware entries` | 缺 `category` | 从十个值里选一个 |
 | `...firmware.json.author: is required for community firmware` | 缺 `author` | 补上 `author.name` |
 | `...firmware.json.source.license: is required for firmware-only packages` | 仅固件包没写许可证 | 补上 `source.license` |
 | `...firmware.json.build: is required when source.path is provided` | 源码模式缺 `build` | 补上 `build` 对象 |
-| `...firmware.json.build.projectPath: must contain CMakeLists.txt for an ESP-IDF project` | `source/` 为空或指错目录 | 把 ESP-IDF 工程根目录提交到 `source/` |
+| `...firmware.json.build.projectPath: must contain CMakeLists.txt for the esp-idf build system` | `projectPath` 为空或指错目录 | 把工程根目录提交到该路径。PlatformIO 需要 `platformio.ini`，Arduino 需要 `sketch.yaml` |
+| `...firmware.json.build: contains unsupported field "target"` | 混用了其他编译系统的字段 | 只保留当前 `build.system` 接受的字段 |
 | `...flash.versions[0].sourceBuild: must be true for a source contribution` | 最新版本没有 `sourceBuild` | 第一项加上 `"sourceBuild": true` |
 | `...flash.versions[0]: must use exactly one firmware delivery method` | `sourceBuild` 和 `manifestPath` 同时出现，或都没有 | 只保留一种 |
 | `...manifestPath: must be inside the firmware/ directory` | manifest 放错位置 | 移到 `firmware/<version>/manifest.json` |
@@ -533,9 +669,11 @@ PR 需要包含所选贡献方式对应的内容、项目资料、图片和实�
 GitHub Actions 会依次执行：
 
 1. 检查 Registry 结构和仅固件包模式提交的文件。
-2. 按每个源码项目声明的 ESP-IDF 版本进行编译。
-3. 根据 ESP-IDF 烧录表自动生成 manifest 和完整固件包。
+2. 按每个源码项目声明的工具链版本进行编译。
+3. 根据工具链给出的烧录表自动生成 manifest 和完整固件包。
 4. 把生成的固件作为 PR 临时构建产物，供维护者下载审核。
+
+审核卡片还会列出对官方固件或 Partner Firmwares 的改动。这两栏由 Seeed 或合作平台维护，社区投稿请放到 Community Firmwares。
 
 当这些检查通过，并且维护者确认项目用途、许可证、兼容性和实机结果后，PR 才进入合并。
 

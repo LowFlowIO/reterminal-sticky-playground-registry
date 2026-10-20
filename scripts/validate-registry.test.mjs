@@ -138,6 +138,17 @@ test('accepts an empty production registry', () => {
   assert.match(result.stdout, /Registry validation passed \(0 firmware\(s\), 0 printable\(s\)\)\./);
 });
 
+test('points an entry left in the earlier directory layout at its current location', () => {
+  const root = createRegistry();
+  mkdirSync(join(root, 'integrations', 'inx-pro'), { recursive: true });
+  writeFileSync(join(root, 'integrations', 'inx-pro', 'integration.json'), '{}\n');
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /integrations: entries belong in firmwares\/ with their metadata in firmware\.json/);
+});
+
 test('accepts an integration without an optional logo', () => {
   const root = createRegistry();
   const integration = validBase('preview-only', 'external');
@@ -375,6 +386,118 @@ test('rejects an unsafe ESP-IDF Docker tag', () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /build\.version: has an invalid format/);
+});
+
+// Writes an external entry whose only interesting part is its build block.
+// 写入一个只为验证 build 段落而存在的 external 条目。
+function writeBuildIntegration(root, id, build, markerFile) {
+  const integration = validBase(id, 'external');
+  integration.source.path = 'source';
+  integration.build = build;
+  integration.external = {
+    label: 'Open official tool',
+    url: 'https://example.com/tool',
+    description: 'Continue in the maintained upstream tool.',
+  };
+  const integrationDir = writeIntegration(root, integration);
+  mkdirSync(join(integrationDir, 'source'), { recursive: true });
+  if (markerFile) {
+    writeFileSync(join(integrationDir, 'source', markerFile), 'example\n');
+  }
+  return integrationDir;
+}
+
+test('accepts a PlatformIO build block', () => {
+  const root = createRegistry();
+  writeBuildIntegration(
+    root,
+    'pio-firmware',
+    { system: 'platformio', environment: 'sticky', projectPath: 'source' },
+    'platformio.ini',
+  );
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 0);
+});
+
+test('accepts an Arduino build block', () => {
+  const root = createRegistry();
+  writeBuildIntegration(
+    root,
+    'arduino-firmware',
+    { system: 'arduino', profile: 'sticky', projectPath: 'source' },
+    'sketch.yaml',
+  );
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 0);
+});
+
+test('rejects an unknown build system', () => {
+  const root = createRegistry();
+  writeBuildIntegration(
+    root,
+    'makefile-firmware',
+    { system: 'makefile', projectPath: 'source' },
+    'Makefile',
+  );
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /build\.system: must be one of: esp-idf, platformio, arduino/);
+});
+
+test('rejects a build block that borrows fields from another build system', () => {
+  const root = createRegistry();
+  writeBuildIntegration(
+    root,
+    'pio-with-idf-fields',
+    {
+      system: 'platformio',
+      environment: 'sticky',
+      target: 'esp32s3',
+      projectPath: 'source',
+    },
+    'platformio.ini',
+  );
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /build: contains unsupported field "target"/);
+});
+
+test('rejects a PlatformIO project without platformio.ini', () => {
+  const root = createRegistry();
+  writeBuildIntegration(
+    root,
+    'pio-without-ini',
+    { system: 'platformio', environment: 'sticky', projectPath: 'source' },
+    'CMakeLists.txt',
+  );
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /build\.projectPath: must contain platformio\.ini/);
+});
+
+test('rejects an Arduino sketch without a profile name', () => {
+  const root = createRegistry();
+  writeBuildIntegration(
+    root,
+    'arduino-without-profile',
+    { system: 'arduino', projectPath: 'source' },
+    'sketch.yaml',
+  );
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /build: missing required field "profile"/);
 });
 
 test('accepts a valid template integration with local fragments', () => {
@@ -661,6 +784,14 @@ test('rejects a community firmware entry without a category', () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /category: is required for community firmware entries/);
+
+  integration.category = 'writing';
+  writeFileSync(
+    join(integrationDir, 'firmware.json'),
+    `${JSON.stringify(integration, null, 2)}\n`,
+  );
+  const writingResult = runValidator(root);
+  assert.equal(writingResult.status, 0, writingResult.stderr);
 });
 
 test('rejects an unsupported firmware category', () => {
@@ -677,7 +808,7 @@ test('rejects an unsupported firmware category', () => {
   const result = runValidator(root);
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /category: must be one of: ereader, productivity, personal, weather, finance, tools, fun, smart-home/);
+  assert.match(result.stderr, /category: must be one of: ereader, productivity, writing, personal, weather, finance, tools, fun, smart-home/);
 });
 
 test('accepts a printable design card with a preview photo', () => {
@@ -688,6 +819,43 @@ test('accepts a printable design card with a preview photo', () => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Registry validation passed \(0 firmware\(s\), 1 printable\(s\)\)\./);
+});
+
+test('accepts a printable design that leaves out the description and the platform name', () => {
+  const root = createRegistry();
+  const printable = validPrintable('link-only-stand');
+  delete printable.description;
+  delete printable.download.platform;
+  delete printable.download.license;
+  writePrintable(root, printable);
+
+  const result = runValidator(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Registry validation passed \(0 firmware\(s\), 1 printable\(s\)\)\./);
+});
+
+test('accepts the other category on a printable design and on a firmware entry', () => {
+  const printableRoot = createRegistry();
+  const printable = validPrintable('other-part');
+  printable.category = 'other';
+  writePrintable(printableRoot, printable);
+
+  const printableResult = runValidator(printableRoot);
+  assert.equal(printableResult.status, 0, printableResult.stderr);
+
+  const firmwareRoot = createRegistry();
+  const firmware = validBase('other-app', 'external');
+  firmware.category = 'other';
+  firmware.external = {
+    label: 'Open official tool',
+    url: 'https://example.com/tool',
+    description: 'Continue in the maintained upstream tool.',
+  };
+  writeIntegration(firmwareRoot, firmware);
+
+  const firmwareResult = runValidator(firmwareRoot);
+  assert.equal(firmwareResult.status, 0, firmwareResult.stderr);
 });
 
 test('rejects a printable design with firmware-only fields', () => {
@@ -738,6 +906,70 @@ test('rejects a printable design whose download page is not HTTPS', () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /download\.url: must use HTTPS/);
+});
+
+function jpegOfSize(bytes) {
+  const buffer = Buffer.alloc(bytes, 0);
+  buffer[0] = 0xff;
+  buffer[1] = 0xd8;
+  buffer[2] = 0xff;
+  return buffer;
+}
+
+function webpOfSize(bytes) {
+  const buffer = Buffer.alloc(bytes, 0);
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(bytes - 8, 4);
+  buffer.write('WEBP', 8, 'ascii');
+  return buffer;
+}
+
+test('accepts preview photos larger than 1 MB and at most 5 MB', () => {
+  const printableRoot = createRegistry();
+  const printable = validPrintable('large-photo-stand');
+  const printableDir = writePrintable(printableRoot, printable);
+  writeFileSync(join(printableDir, 'assets', 'preview.jpg'), jpegOfSize((1024 * 1024) + 1));
+
+  const printableResult = runValidator(printableRoot);
+  assert.equal(printableResult.status, 0, printableResult.stderr);
+
+  const firmwareRoot = createRegistry();
+  const firmware = validBase('large-preview-app', 'external');
+  firmware.external = {
+    label: 'Open official tool',
+    url: 'https://example.com/tool',
+    description: 'Continue in the maintained upstream tool.',
+  };
+  const firmwareDir = writeIntegration(firmwareRoot, firmware);
+  writeFileSync(join(firmwareDir, 'assets', 'preview.webp'), webpOfSize((1024 * 1024) + 1));
+
+  const firmwareResult = runValidator(firmwareRoot);
+  assert.equal(firmwareResult.status, 0, firmwareResult.stderr);
+});
+
+test('rejects preview photos larger than 5 MB', () => {
+  const printableRoot = createRegistry();
+  const printable = validPrintable('huge-photo-stand');
+  const printableDir = writePrintable(printableRoot, printable);
+  writeFileSync(join(printableDir, 'assets', 'preview.jpg'), jpegOfSize((5 * 1024 * 1024) + 1));
+
+  const printableResult = runValidator(printableRoot);
+  assert.equal(printableResult.status, 1);
+  assert.match(printableResult.stderr, /preview\.image: must not exceed 5 MB/);
+
+  const firmwareRoot = createRegistry();
+  const firmware = validBase('huge-preview-app', 'external');
+  firmware.external = {
+    label: 'Open official tool',
+    url: 'https://example.com/tool',
+    description: 'Continue in the maintained upstream tool.',
+  };
+  const firmwareDir = writeIntegration(firmwareRoot, firmware);
+  writeFileSync(join(firmwareDir, 'assets', 'preview.webp'), webpOfSize((5 * 1024 * 1024) + 1));
+
+  const firmwareResult = runValidator(firmwareRoot);
+  assert.equal(firmwareResult.status, 1);
+  assert.match(firmwareResult.stderr, /assets\.preview: must not exceed 5 MB/);
 });
 
 test('rejects a printable design whose preview photo is missing', () => {

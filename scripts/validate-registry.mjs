@@ -23,13 +23,26 @@ const PRINTABLES_DIR = join(REPOSITORY_ROOT, 'printables');
 const FIRMWARE_SCHEMA_PATH = join(REPOSITORY_ROOT, 'schemas', 'firmware.schema.json');
 const PRINTABLE_SCHEMA_PATH = join(REPOSITORY_ROOT, 'schemas', 'printable.schema.json');
 
+// Top-level directory names an earlier layout used, mapped to where their content belongs now.
+// 早前目录结构使用的顶层目录名，映射到其内容现在应存放的位置。
+const RENAMED_DIRECTORIES = new Map([
+  ['integrations', { directory: 'firmwares', metadataFile: 'firmware.json' }],
+]);
+
 const ALLOWED_GROUPS = new Set(['official', 'partner', 'community']);
 const ALLOWED_MODES = new Set(['external', 'template', 'download', 'flash']);
 const ALLOWED_STATUSES = new Set(['experimental', 'beta', 'stable']);
 const ALLOWED_CATALOG_SECTIONS = new Set(['official', 'platform', 'community', 'draft']);
-const ALLOWED_FIRMWARE_CATEGORIES = new Set(['ereader', 'productivity', 'personal', 'weather', 'finance', 'tools', 'fun', 'smart-home']);
-const ALLOWED_PRINTABLE_CATEGORIES = new Set(['case', 'stand', 'mount', 'accessory', 'reference']);
-const ALLOWED_BUILD_SYSTEMS = new Set(['esp-idf']);
+const ALLOWED_FIRMWARE_CATEGORIES = new Set(['ereader', 'productivity', 'writing', 'personal', 'weather', 'finance', 'tools', 'fun', 'smart-home', 'other']);
+const ALLOWED_PRINTABLE_CATEGORIES = new Set(['case', 'stand', 'mount', 'accessory', 'reference', 'other']);
+// Fields and project marker file each supported build system expects.
+// 每种受支持的编译系统所需的字段,以及用于识别工程的标识文件。
+const BUILD_SYSTEMS = new Map([
+  ['esp-idf', { fields: ['system', 'version', 'target', 'projectPath'], marker: 'CMakeLists.txt' }],
+  ['platformio', { fields: ['system', 'environment', 'projectPath'], marker: 'platformio.ini' }],
+  ['arduino', { fields: ['system', 'profile', 'projectPath'], marker: 'sketch.yaml' }],
+]);
+const BUILD_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const ALLOWED_ASSET_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.svg']);
 const ALLOWED_PHOTO_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const PRINTABLE_FIELDS = new Set([
@@ -205,23 +218,37 @@ function validateLocalDirectoryPath(value, integrationDir, scope) {
   return resolvedPath;
 }
 
+// Validates a build block against the field set of its declared build system.
+// 按声明的编译系统,校验 build 段落所要求的字段。
 function validateBuild(value, integrationDir, source, scope) {
-  const allowedKeys = new Set(['system', 'version', 'target', 'projectPath']);
-  if (!validateObjectKeys(value, ['system', 'version', 'target', 'projectPath'], allowedKeys, scope)) {
+  if (!isObject(value)) {
+    addError(scope, 'must be an object');
     return;
   }
-  validateEnum(value.system, ALLOWED_BUILD_SYSTEMS, `${scope}.system`);
-  validateString(value.version, `${scope}.version`, {
-    max: 64,
-    pattern: /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
-  });
-  validateString(value.target, `${scope}.target`, { max: 40, pattern: ID_PATTERN });
+  if (!validateEnum(value.system, new Set(BUILD_SYSTEMS.keys()), `${scope}.system`)) {
+    return;
+  }
+
+  const { fields, marker } = BUILD_SYSTEMS.get(value.system);
+  if (!validateObjectKeys(value, fields, new Set(fields), scope)) {
+    return;
+  }
+
+  if (value.system === 'esp-idf') {
+    validateString(value.version, `${scope}.version`, { max: 64, pattern: BUILD_NAME_PATTERN });
+    validateString(value.target, `${scope}.target`, { max: 40, pattern: ID_PATTERN });
+  } else if (value.system === 'platformio') {
+    validateString(value.environment, `${scope}.environment`, { max: 64, pattern: BUILD_NAME_PATTERN });
+  } else {
+    validateString(value.profile, `${scope}.profile`, { max: 64, pattern: BUILD_NAME_PATTERN });
+  }
+
   const projectPath = validateLocalDirectoryPath(value.projectPath, integrationDir, `${scope}.projectPath`);
   if (source?.path && value.projectPath !== source.path) {
     addError(`${scope}.projectPath`, 'must match source.path');
   }
-  if (projectPath && !existsSync(join(projectPath, 'CMakeLists.txt'))) {
-    addError(`${scope}.projectPath`, 'must contain CMakeLists.txt for an ESP-IDF project');
+  if (projectPath && !existsSync(join(projectPath, marker))) {
+    addError(`${scope}.projectPath`, `must contain ${marker} for the ${value.system} build system`);
   }
 }
 
@@ -909,7 +936,6 @@ function validatePrintable(printableDir, directoryName, seenIds) {
     'name',
     'category',
     'summary',
-    'description',
     'author',
     'download',
     'preview',
@@ -935,12 +961,16 @@ function validatePrintable(printableDir, directoryName, seenIds) {
   validateString(printable.name, `${scope}.name`, { max: 80 });
   validateEnum(printable.category, ALLOWED_PRINTABLE_CATEGORIES, `${scope}.category`);
   validateString(printable.summary, `${scope}.summary`, { max: 140 });
-  validateString(printable.description, `${scope}.description`, { max: 800 });
+  if (printable.description !== undefined) {
+    validateString(printable.description, `${scope}.description`, { max: 800 });
+  }
   validateAttribution(printable.author, `${scope}.author`);
 
   const downloadScope = `${scope}.download`;
-  if (validateObjectKeys(printable.download, ['platform', 'url'], new Set(['platform', 'url', 'license']), downloadScope)) {
-    validateString(printable.download.platform, `${downloadScope}.platform`, { max: 40 });
+  if (validateObjectKeys(printable.download, ['url'], new Set(['platform', 'url', 'license']), downloadScope)) {
+    if (printable.download.platform !== undefined) {
+      validateString(printable.download.platform, `${downloadScope}.platform`, { max: 40 });
+    }
     validateHttpsUrl(printable.download.url, `${downloadScope}.url`);
     if (printable.download.license !== undefined) {
       validateString(printable.download.license, `${downloadScope}.license`, { max: 80 });
@@ -984,6 +1014,15 @@ function main() {
       JSON.parse(readFileSync(schemaPath, 'utf8'));
     } catch (error) {
       addError(label, `contains invalid JSON (${error.message})`);
+    }
+  }
+
+  for (const [name, current] of RENAMED_DIRECTORIES) {
+    if (existsSync(join(REPOSITORY_ROOT, name))) {
+      addError(
+        name,
+        `entries belong in ${current.directory}/ with their metadata in ${current.metadataFile}`,
+      );
     }
   }
 

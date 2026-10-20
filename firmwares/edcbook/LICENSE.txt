@@ -1,0 +1,12 @@
+LicenseRef-EDCBook-Firmware
+
+EDC Book firmware distribution terms
+
+The EDC Book firmware binary is publicly distributed. The author permits
+users to use and redistribute the firmware binary freely.
+
+The source code is not provided with this release and is not published by
+the author. This permission is not an open-source license for the source code.
+
+Third-party components remain subject to their respective licenses. These
+distribution terms do not replace those licenses.

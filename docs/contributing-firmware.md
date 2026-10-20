@@ -12,11 +12,29 @@ include metadata, visual assets, and a physical-device test record. The private
 Sticky website reads only a reviewed Registry commit and generates the public
 card and flashing page.
 
+## The five-minute route: the website form
+
+When you already have a compiled `.bin`, the **Submit with the form** button on
+the [Firmware page](https://www.seeedstudio.com/sticky/playground/firmware/)
+opens a short form: the firmware name, category, summary, version, license,
+project page, one photo, and the binary. You can send one merged image written
+at `0x0`, or separate files at the offsets already used by packages on
+Playground (`0x0`, `0x8000`, `0xE000`, `0x10000`). The submission service writes
+`firmware.json`, `README.md`, `assets/preview.<ext>`, and
+`firmware/<version>/` for you and opens the pull request. The page then shows
+the pull request link. You need no GitHub account, no git, and no JSON editor.
+
+Source contributions that GitHub Actions compiles still use the manual route
+below. Read on when you prefer to prepare the files yourself, when you update a
+firmware that is already listed, or when you want to understand exactly what
+the form produces.
+
 For the Chinese guide, see [contributing-firmware.zh-CN.md](contributing-firmware.zh-CN.md).
 Shared review and release steps live in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Contents
 
+- [The five-minute route: the website form](#the-five-minute-route-the-website-form)
 - [Contribution result](#contribution-result)
 - [Required pull request contents](#required-pull-request-contents)
 - [Create a contribution](#create-a-contribution)
@@ -24,7 +42,7 @@ Shared review and release steps live in [CONTRIBUTING.md](../CONTRIBUTING.md).
 - [Contribution paths](#contribution-paths): [source](#source-contribution) or [firmware-only](#firmware-only-package) (with the [manifest.json reference](#manifestjson-for-a-firmware-only-package))
 - [Official Sticky firmware updates](#official-sticky-firmware-updates)
 - [Source contribution requirements](#source-contribution-requirements)
-- [Optional local ESP-IDF build](#optional-local-esp-idf-build)
+- [Optional local build](#optional-local-build)
 - [Local validation](#local-validation) and [common validation errors](#common-validation-errors)
 - [Submitting the pull request](#submitting-the-pull-request)
 - [Physical device test](#physical-device-test)
@@ -108,6 +126,15 @@ screenshot or photo as the preview. Coordinated partner entries may reference
 the same official logo path from both `assets.logo` and `assets.preview`.
 
 ## Create a contribution
+
+Start from the current upstream `main` so the contribution uses the directory
+layout the Registry reads today:
+
+```bash
+# Once per clone
+git remote add upstream https://github.com/Seeed-Projects/reterminal-sticky-playground-registry.git
+git pull --no-ff upstream main
+```
 
 From the repository root:
 
@@ -211,7 +238,7 @@ entries are coordinated with Seeed.
 | `name` | string | Yes | 1–80 chars | Card title shown on the website |
 | `group` | string | Yes | `official`, `partner`, `community` | `community` |
 | `catalogSection` | string | Yes | `official`, `platform`, `community`, `draft` | `community`. Cards in `draft` are not published |
-| `category` | string | Required for `community` | `ereader`, `productivity`, `personal`, `weather`, `finance`, `tools`, `fun`, `smart-home` | The filter that shows your card; see the table below |
+| `category` | string | Required for `community` | `ereader`, `productivity`, `writing`, `personal`, `weather`, `finance`, `tools`, `fun`, `smart-home`, `other` | The filter that shows your card; see the table below |
 | `mode` | string | Yes | `flash`, `external`, `template`, `download` | `flash` (browser flashing). The other modes are reserved for coordinated entries |
 | `status` | string | Yes | `experimental`, `beta`, `stable` | Project maturity; shown as a badge |
 | `summary` | string | Yes | 1–140 chars | One sentence under the title |
@@ -224,12 +251,14 @@ Community firmware categories:
 |---|---|---|
 | `ereader` | eReader | Book, article, and document readers |
 | `productivity` | Productivity | Task lists, calendars, notes, timers, dashboards for work |
+| `writing` | Writing | Handwritten or typed notes, journals, and writing tools |
 | `personal` | Personal | Habit trackers, prayer times, journals, personal reminders |
 | `weather` | Weather | Weather, air quality, tides, forecasts |
 | `finance` | Finance | Prices, portfolios, budgets |
 | `tools` | Tools | Utilities, calculators, converters, device diagnostics |
 | `fun` | Fun | Games, art, toys, novelty displays |
 | `smart-home` | Smart Home | Home Assistant, sensors, controls, presence |
+| `other` | Others | Firmware that fits none of the categories above |
 
 #### Attribution and links
 
@@ -241,7 +270,7 @@ Community firmware categories:
 | `origin.url` | string | No | HTTPS URL | Link for `origin.name` |
 | `source.url` | string | Yes | HTTPS URL | Upstream source repository, for both contribution paths |
 | `source.license` | string | Required for firmware-only | 1–80 chars | SPDX-style license id such as `MIT`, `GPL-3.0`, `Apache-2.0` |
-| `source.path` | string | Required for source contributions | relative path inside the directory, normally `source` | Directory containing the ESP-IDF project |
+| `source.path` | string | Required for source contributions | relative path inside the directory, normally `source` | Directory containing the project; Arduino uses the sketch name |
 | `support.url` | string | Yes | HTTPS URL | Where users report problems, normally the issue tracker |
 | `documentationUrl` | string | No | HTTPS URL | User documentation, normally the upstream README |
 
@@ -259,10 +288,15 @@ Community firmware categories:
 
 | Field | Type | Required | Limits | What to write |
 |---|---|---|---|---|
-| `build.system` | string | Yes | must be `esp-idf` | `esp-idf` |
-| `build.version` | string | Yes | up to 64 chars, `^[A-Za-z0-9][A-Za-z0-9._-]*$` | ESP-IDF version the project builds with: `v5.4`, `v5.3.2`, `latest` |
-| `build.target` | string | Yes | up to 40 chars | `esp32s3` (reTerminal Sticky uses an ESP32-S3) |
+| `build.system` | string | Yes | `esp-idf`, `platformio`, or `arduino` | The build system the project already uses |
+| `build.version` | string | ESP-IDF only | up to 64 chars, `^[A-Za-z0-9][A-Za-z0-9._-]*$` | ESP-IDF version the project builds with: `v5.4`, `v5.3.2`, `latest` |
+| `build.target` | string | ESP-IDF only | up to 40 chars | `esp32s3` (reTerminal Sticky uses an ESP32-S3) |
+| `build.environment` | string | PlatformIO only | up to 64 chars, `^[A-Za-z0-9][A-Za-z0-9._-]*$` | `platformio.ini` environment name, without the `env:` prefix |
+| `build.profile` | string | Arduino only | up to 64 chars, `^[A-Za-z0-9][A-Za-z0-9._-]*$` | `sketch.yaml` profile name |
 | `build.projectPath` | string | Yes | relative path | Same value as `source.path` |
+
+Each build system accepts only its own fields. Write `version` and `target` for
+ESP-IDF, `environment` for PlatformIO, and `profile` for Arduino.
 
 Omit the whole `build` object for firmware-only packages.
 
@@ -362,17 +396,42 @@ lists. The website reads this manifest to flash the device in the browser.
 | `builds[].parts[].size` | Yes | Exact byte size of the file |
 | `builds[].parts[].sha256` | Yes | Lowercase SHA-256 of the file |
 
-Parts must not overlap and each `.bin` may not exceed 32 MB. Get the numbers
-with:
+Parts must not overlap and each `.bin` may not exceed 32 MB.
+
+**Let the repository write the manifest.** Copy your `.bin` files into
+`firmwares/my-firmware/firmware/1.0.0/`, then run one command from the
+repository root; it fills in every size and SHA-256 for you and prints the
+`flash.versions` entry to paste into `firmware.json`:
+
+```bash
+npm run create:manifest -- my-firmware 1.0.0 --part bootloader.bin@0x0 --part partitions.bin@0x8000 --part firmware.bin@0x10000
+```
+
+If you built with ESP-IDF, point the command at the build instead of typing
+offsets:
+
+```bash
+npm run create:manifest -- my-firmware 1.0.0 --flasher-args source/build/flasher_args.json
+```
+
+A single merged image needs no offsets at all:
+
+```bash
+npm run create:manifest -- my-firmware 1.0.0
+```
+
+Running the command again after replacing a `.bin` refreshes the sizes and
+hashes and keeps the flasher settings the manifest already had.
+
+Offsets come from ESP-IDF's `build/flasher_args.json` (`flash_files`) or the
+upstream project's release notes. A single merged image starts at offset `0`.
+To read the numbers by hand instead:
 
 ```bash
 cd firmwares/my-firmware/firmware/1.0.0
 wc -c *.bin                 # size
 shasum -a 256 *.bin         # sha256 (macOS/Linux); certutil -hashfile file SHA256 on Windows
 ```
-
-Offsets come from ESP-IDF's `build/flasher_args.json` (`flash_files`) or the
-upstream project's release notes. A single merged image starts at offset `0`.
 
 ## Official Sticky firmware updates
 
@@ -408,8 +467,11 @@ applicable license.
 Use placeholders or runtime setup for user-specific Wi-Fi credentials, API
 keys, tokens, and passwords.
 
-The first automated build path supports ESP-IDF projects. A typical source tree
-contains:
+CI builds ESP-IDF, PlatformIO, and Arduino projects. Pick the one your project
+already uses and declare it in `build.system`. Starting points for PlatformIO and
+Arduino live in [examples/](../examples/README.md).
+
+### ESP-IDF
 
 ```text
 source/
@@ -422,26 +484,108 @@ source/
   LICENSE
 ```
 
-Projects that need another build system should open an issue first so the
-maintainers can add a reproducible CI build adapter before the firmware PR.
+```json
+"build": {
+  "system": "esp-idf",
+  "version": "v5.4",
+  "target": "esp32s3",
+  "projectPath": "source"
+}
+```
 
-The `build.version` field selects the ESP-IDF version used by GitHub Actions.
-Declare the version already used by the project, for example `v5.0.5`, `v5.3.2`,
-or `latest`.
+`build.version` selects the ESP-IDF Docker image tag, for example `v5.0.5`,
+`v5.3.2`, or `latest`.
 
-## Optional local ESP-IDF build
+### PlatformIO
 
-Authors may build locally before opening the PR. Install the ESP-IDF version
-declared in `firmware.json`, then run from the integration source directory:
+```text
+source/
+  platformio.ini
+  src/
+    main.cpp
+  LICENSE
+```
+
+```json
+"build": {
+  "system": "platformio",
+  "environment": "sticky",
+  "projectPath": "source"
+}
+```
+
+`build.environment` names the `[env:...]` section CI builds, without the `env:`
+prefix. Pin the platform version in `platformio.ini` so a rebuild produces the
+same binary:
+
+```ini
+[env:sticky]
+platform = espressif32@6.13.0
+board = esp32-s3-devkitc-1
+framework = arduino
+```
+
+### Arduino
+
+Arduino CLI requires the sketch directory and the `.ino` file to share a name, so
+name the project directory after the sketch instead of using `source`:
+
+```text
+my-sketch/
+  my-sketch.ino
+  sketch.yaml
+  LICENSE
+```
+
+```json
+"build": {
+  "system": "arduino",
+  "profile": "sticky",
+  "projectPath": "my-sketch"
+}
+```
+
+`build.profile` names a profile in `sketch.yaml`. A profile pins the board core
+and every library, which is what makes the build reproducible:
+
+```yaml
+profiles:
+  sticky:
+    fqbn: esp32:esp32:esp32s3
+    platforms:
+      - platform: esp32:esp32 (3.3.11)
+        platform_index_url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+default_profile: sticky
+```
+
+Add the board options your firmware needs to the `fqbn`, for example
+`esp32:esp32:esp32s3:PSRAM=opi,FlashSize=32M` for the 32 MB flash and octal PSRAM
+that reTerminal Sticky ships.
+
+Projects on another build system should open an issue first so the maintainers can
+add a reproducible CI build adapter before the firmware PR.
+
+## Optional local build
+
+Authors may build locally before opening the PR. Run the command for the declared
+build system from the project directory:
 
 ```bash
+# ESP-IDF
 idf.py set-target esp32s3
 idf.py -D PROJECT_VER=1.0.0 build
+
+# PlatformIO
+pio run -e sticky
+
+# Arduino
+arduino-cli compile --profile sticky
 ```
 
 This local build verifies the project before submission. The Registry ignores
-the local `build/`, generated `sdkconfig`, dependency cache, and editor settings.
-GitHub Actions performs the official build and packaging after the PR is opened.
+local build output, generated configuration, dependency caches, and editor
+settings. GitHub Actions performs the official build and packaging after the PR
+is opened.
 
 ## Local validation
 
@@ -457,7 +601,7 @@ The validator checks:
 - directory and ID consistency;
 - required metadata and HTTPS links;
 - the integration README and declared source license;
-- local source and ESP-IDF project files when `source.path` is present;
+- local source and the build system's project files when `source.path` is present;
 - image file signatures and static SVG safety;
 - local manifest structure;
 - firmware file existence, byte size, and SHA-256;
@@ -473,14 +617,16 @@ against the files committed in the PR.
 
 | Error text | Cause | Fix |
 |---|---|---|
+| `integrations: entries belong in firmwares/ with their metadata in firmware.json` | The branch started from an earlier directory layout | Sync with upstream `main`, then move the entry to `firmwares/<id>/` and rename its metadata to `firmware.json` |
 | `firmwares/my-firmware: is missing firmware.json` | File not created or misnamed | Create `firmwares/my-firmware/firmware.json` |
 | `...firmware.json: contains unsupported field "..."` | A key that is not in the field reference | Remove it or fix the spelling |
 | `...firmware.json.id: must match the directory name "..."` | `id` differs from the directory | Make them identical |
-| `...firmware.json.category: is required for community firmware entries` | Missing `category` | Add one of the eight values |
+| `...firmware.json.category: is required for community firmware entries` | Missing `category` | Add one of the ten values |
 | `...firmware.json.author: is required for community firmware` | Missing `author` | Add `author.name` |
 | `...firmware.json.source.license: is required for firmware-only packages` | Firmware-only without a license id | Add `source.license` |
 | `...firmware.json.build: is required when source.path is provided` | Source contribution without `build` | Add the `build` object |
-| `...firmware.json.build.projectPath: must contain CMakeLists.txt for an ESP-IDF project` | `source/` is empty or points at the wrong directory | Commit the ESP-IDF project root under `source/` |
+| `...firmware.json.build.projectPath: must contain CMakeLists.txt for the esp-idf build system` | `projectPath` is empty or points at the wrong directory | Commit the project root there. PlatformIO needs `platformio.ini`, Arduino needs `sketch.yaml` |
+| `...firmware.json.build: contains unsupported field "target"` | Fields from another build system | Keep only the fields your `build.system` accepts |
 | `...flash.versions[0].sourceBuild: must be true for a source contribution` | Newest version lacks `sourceBuild` | Set `"sourceBuild": true` on the first entry |
 | `...flash.versions[0]: must use exactly one firmware delivery method` | `sourceBuild` and `manifestPath` both set, or neither | Keep one |
 | `...manifestPath: must be inside the firmware/ directory` | Manifest stored elsewhere | Move to `firmware/<version>/manifest.json` |
@@ -547,9 +693,13 @@ The pull request contains the selected contribution path, metadata, assets, and
 hardware test result. GitHub Actions performs these checks:
 
 1. Validate the Registry structure and every firmware-only package.
-2. Build source-contribution ESP-IDF projects with each project-declared IDF version.
-3. Generate the flash manifest and firmware package from ESP-IDF's flash map.
+2. Build source contributions with the toolchain version the project declares.
+3. Generate the flash manifest and firmware package from the toolchain's flash map.
 4. Upload the generated package as a temporary PR artifact for maintainer review.
+
+The review card also lists any change to Official Sticky firmware or Partner
+Firmwares. Those catalog entries are maintained by Seeed or the partner
+platform; community submissions use Community Firmwares.
 
 The pull request remains under review until these checks pass and the maintainer
 can verify the project purpose, license, compatibility, and hardware test.

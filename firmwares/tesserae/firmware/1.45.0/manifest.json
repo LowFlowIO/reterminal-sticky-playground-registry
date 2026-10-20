@@ -1,0 +1,40 @@
+{
+  "name": "Tesserae",
+  "version": "1.45.0",
+  "flashSize": "16MB",
+  "flashMode": "dio",
+  "flashFreq": "80m",
+  "baudRate": 460800,
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "bootloader.bin",
+          "offset": 0,
+          "size": 21408,
+          "sha256": "d95e8bc23425135759ea71184f6a4aed380c8f8ffb878448c9b9677517f8db9b"
+        },
+        {
+          "path": "partitions.bin",
+          "offset": 32768,
+          "size": 3072,
+          "sha256": "d77f3c2441e035bf11cfec63621d378f26d91ef3d9db80d31d8cfc66680da159"
+        },
+        {
+          "path": "ota_data_initial.bin",
+          "offset": 65536,
+          "size": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        {
+          "path": "firmware.bin",
+          "offset": 131072,
+          "size": 2221616,
+          "sha256": "30b70498d759ad41e133accc63f82ab08e09b4b22b4a79b1e60dc24aefb99a61"
+        }
+      ]
+    }
+  ]
+}

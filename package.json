@@ -7,7 +7,10 @@
   "scripts": {
     "test": "node --test scripts/*.test.mjs",
     "validate": "node scripts/validate-registry.mjs",
-    "package:esp-idf": "node scripts/package-esp-idf.mjs"
+    "create:manifest": "node scripts/create-flash-manifest.mjs",
+    "package:esp-idf": "node scripts/package-esp-idf.mjs",
+    "package:platformio": "node scripts/package-platformio.mjs",
+    "package:arduino": "node scripts/package-arduino.mjs"
   },
   "engines": {
     "node": ">=20"
